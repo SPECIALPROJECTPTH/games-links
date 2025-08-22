@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中國省市美食配對遊戲</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft JhengHei', 'PingFang TC', 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255,255,255,0.95);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .score, .timer {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #4a5568;
+        }
+
+        .restart-btn {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .restart-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        .instructions {
+            background: rgba(255,255,255,0.95);
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .instructions h3 {
+            color: #2d3748;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+
+        .instructions ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .instructions li {
+            padding: 8px 0;
+            color: #4a5568;
+            position: relative;
+            padding-left: 25px;
+        }
+
+        .instructions li::before {
+            content: '🍽️';
+            position: absolute;
+            left: 0;
+            top: 8px;
+        }
+
+        .note {
+            margin-top: 20px;
+            padding: 15px;
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            color: #856404;
+        }
+
+        .note p {
+            margin: 0;
+            font-size: 0.95rem;
+        }
+
+        .game-area {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .provinces-container, .foods-container {
+            background: rgba(255,255,255,0.95);
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .provinces-container h3, .foods-container h3 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #2d3748;
+            font-size: 1.3rem;
+        }
+
+        .provinces, .foods {
+            display: grid;
+            gap: 15px;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        }
+
+        .province-item, .food-item {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            cursor: grab;
+            transition: all 0.3s ease;
+            border: 2px solid #e2e8f0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .province-item::before, .food-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            transition: left 0.5s;
+        }
+
+        .province-item:hover::before, .food-item:hover::before {
+            left: 100%;
+        }
+
+        .province-item:hover, .food-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            border-color: #4299e1;
+        }
+
+        .province-item.dragging {
+            opacity: 0.5;
+            transform: rotate(5deg);
+            cursor: grabbing;
+        }
+
+        .food-item.drag-over {
+            background: #e6fffa;
+            border-color: #38b2ac;
+            transform: scale(1.05);
+        }
+
+        .province-item.correct, .food-item.correct {
+            background: #c6f6d5;
+            border-color: #48bb78;
+            color: #22543d;
+        }
+
+        .province-item.incorrect {
+            background: #fed7d7;
+            border-color: #f56565;
+            color: #742a2a;
+        }
+
+        .province-item.matched, .food-item.matched {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .food-item.matched::after {
+            content: '✓';
+            position: absolute;
+            top: 5px;
+            right: 8px;
+            color: #e53e3e;
+            font-size: 1.2rem;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+
+        .message {
+            text-align: center;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .message.show {
+            opacity: 1;
+        }
+
+        .message.success {
+            background: #c6f6d5;
+            color: #22543d;
+            border: 2px solid #48bb78;
+        }
+
+        .message.error {
+            background: #fed7d7;
+            color: #742a2a;
+            border: 2px solid #f56565;
+        }
+
+        @media (max-width: 768px) {
+            .game-area {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .game-info {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+            
+            header h1 {
+                font-size: 2rem;
+            }
+            
+            .provinces, .foods {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @keyframes celebrate {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .celebrate {
+            animation: celebrate 0.6s ease-in-out;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🍜 中國省市美食配對遊戲</h1>
+            <p>將左邊的省市拖拽到右邊對應的美食上，完成配對！</p>
+        </header>
+
+        <div class="game-info">
+            <div class="score">配對成功: <span id="score">0</span> / 20</div>
+            <div class="timer">時間: <span id="timer">00:00</span></div>
+            <button id="restart-btn" class="restart-btn">重新開始</button>
+        </div>
+
+        <div class="instructions">
+            <h3>🎮 遊戲說明</h3>
+            <ul>
+                <li>將左邊的省市拖拽到右邊對應的美食上</li>
+                <li>配對正確會顯示綠色，錯誤會顯示紅色</li>
+                <li>完成所有20個配對即可獲勝！</li>
+                <li>配對成功後，省市和美食都會標記為已完成</li>
+                <li>配對成功的項目會變為半透明，無法再次拖拽</li>
+                <li>點擊重新開始按鈕可以重新遊戲</li>
+            </ul>
+            <div class="note">
+                <p><strong>注意：</strong>遊戲中的菜名可能會與說明文檔略有不同，以遊戲實際顯示為準。</p>
+            </div>
+        </div>
+
+        <div class="game-area">
+            <div class="provinces-container">
+                <h3>省市</h3>
+                <div id="provinces" class="provinces"></div>
+            </div>
+            
+            <div class="foods-container">
+                <h3>美食</h3>
+                <div id="foods" class="foods"></div>
+            </div>
+        </div>
+
+        <div class="message" id="message"></div>
+    </div>
+
+    <script>
+        class FoodMatchingGame {
+            constructor() {
+                this.score = 0;
+                this.startTime = Date.now();
+                this.timer = null;
+                this.gameData = [
+                    { province: '北京市', food: '烤鴨' },
+                    { province: '上海市', food: '小籠包' },
+                    { province: '廣東省', food: '早茶' },
+                    { province: '四川省', food: '麻婆豆腐' },
+                    { province: '湖南省', food: '剁椒魚頭' },
+                    { province: '山東省', food: '煎餅' },
+                    { province: '江蘇省', food: '松鼠桂魚' },
+                    { province: '浙江省', food: '西湖醋魚' },
+                    { province: '福建省', food: '佛跳牆' },
+                    { province: '安徽省', food: '臭鱖魚' },
+                    { province: '湖北省', food: '熱乾麵' },
+                    { province: '河南省', food: '胡辣湯' },
+                    { province: '陝西省', food: '肉夾饃' },
+                    { province: '山西省', food: '刀削麵' },
+                    { province: '河北省', food: '驢肉火燒' },
+                    { province: '遼寧省', food: '鍋包肉' },
+                    { province: '吉林省', food: '延邊冷麵' },
+                    { province: '黑龍江省', food: '地三鮮' },
+                    { province: '內蒙古自治區', food: '烤全羊' },
+                    { province: '新疆維吾爾自治區', food: '大盤雞' }
+                ];
+                
+                this.matchedPairs = new Set();
+                this.init();
+            }
+
+            init() {
+                this.setupGame();
+                this.startTimer();
+                this.bindEvents();
+            }
+
+            setupGame() {
+                this.shuffleArray(this.gameData);
+                this.renderProvinces();
+                this.renderFoodsRandom();
+            }
+
+            shuffleArray(array) {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+            }
+
+            renderProvinces() {
+                const provincesContainer = document.getElementById('provinces');
+                provincesContainer.innerHTML = '';
+                
+                this.gameData.forEach((item, index) => {
+                    const provinceElement = document.createElement('div');
+                    provinceElement.className = 'province-item';
+                    provinceElement.draggable = true;
+                    provinceElement.dataset.province = item.province;
+                    provinceElement.dataset.index = index;
+                    provinceElement.textContent = item.province;
+                    
+                    provinceElement.addEventListener('dragstart', (e) => this.handleDragStart(e));
+                    provinceElement.addEventListener('dragend', (e) => this.handleDragEnd(e));
+                    
+                    provincesContainer.appendChild(provinceElement);
+                });
+            }
+
+            renderFoodsRandom() {
+                const foodsContainer = document.getElementById('foods');
+                foodsContainer.innerHTML = '';
+                
+                // 創建美食陣列並隨機排序
+                const foodsArray = this.gameData.map(item => item.food);
+                this.shuffleArray(foodsArray);
+                
+                foodsArray.forEach((food, index) => {
+                    const foodElement = document.createElement('div');
+                    foodElement.className = 'food-item';
+                    foodElement.dataset.food = food;
+                    foodElement.dataset.index = index;
+                    foodElement.textContent = food;
+                    
+                    foodElement.addEventListener('dragover', (e) => this.handleDragOver(e));
+                    foodElement.addEventListener('drop', (e) => this.handleDrop(e));
+                    foodElement.addEventListener('dragenter', (e) => this.handleDragEnter(e));
+                    foodElement.addEventListener('dragleave', (e) => this.handleDragLeave(e));
+                    
+                    foodsContainer.appendChild(foodElement);
+                });
+            }
+
+            handleDragStart(e) {
+                if (this.matchedPairs.has(e.target.dataset.province)) {
+                    e.preventDefault();
+                    return;
+                }
+                
+                e.target.classList.add('dragging');
+                e.dataTransfer.setData('text/plain', e.target.dataset.province);
+                e.dataTransfer.effectAllowed = 'move';
+            }
+
+            handleDragEnd(e) {
+                e.target.classList.remove('dragging');
+            }
+
+            handleDragOver(e) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+            }
+
+            handleDragEnter(e) {
+                e.preventDefault();
+                e.target.classList.add('drag-over');
+            }
+
+            handleDragLeave(e) {
+                e.target.classList.remove('drag-over');
+            }
+
+            handleDrop(e) {
+                e.preventDefault();
+                e.target.classList.remove('drag-over');
+                
+                const provinceName = e.dataTransfer.getData('text/plain');
+                const foodName = e.target.dataset.food;
+                
+                if (this.checkMatch(provinceName, foodName)) {
+                    this.handleCorrectMatch(provinceName, foodName);
+                } else {
+                    this.handleIncorrectMatch(provinceName);
+                }
+            }
+
+            checkMatch(provinceName, foodName) {
+                return this.gameData.some(item => 
+                    item.province === provinceName && item.food === foodName
+                );
+            }
+
+            handleCorrectMatch(provinceName, foodName) {
+                this.score++;
+                this.matchedPairs.add(provinceName);
+                
+                // 更新配對成功的省市和美食樣式
+                const provinceElement = document.querySelector(`[data-province="${provinceName}"]`);
+                const foodElement = document.querySelector(`[data-food="${foodName}"]`);
+                
+                if (provinceElement && foodElement) {
+                    provinceElement.classList.add('correct', 'matched');
+                    provinceElement.classList.remove('incorrect');
+                    foodElement.classList.add('correct', 'matched');
+                    
+                    // 添加慶祝動畫
+                    provinceElement.classList.add('celebrate');
+                    foodElement.classList.add('celebrate');
+                    
+                    setTimeout(() => {
+                        provinceElement.classList.remove('celebrate');
+                        foodElement.classList.remove('celebrate');
+                    }, 600);
+                }
+                
+                this.updateScore();
+                this.showMessage(`🎉 配對成功！${provinceName} 的 ${foodName}`, 'success');
+                
+                if (this.score === 20) {
+                    this.handleGameWin();
+                }
+            }
+
+            handleIncorrectMatch(provinceName) {
+                const provinceElement = document.querySelector(`[data-province="${provinceName}"]`);
+                
+                if (provinceElement) {
+                    provinceElement.classList.add('incorrect');
+                    
+                    setTimeout(() => {
+                        provinceElement.classList.remove('incorrect');
+                    }, 1000);
+                }
+                
+                this.showMessage('❌ 配對錯誤，請重試！', 'error');
+            }
+
+            handleGameWin() {
+                const endTime = Date.now();
+                const totalTime = Math.floor((endTime - this.startTime) / 1000);
+                const minutes = Math.floor(totalTime / 60);
+                const seconds = totalTime % 60;
+                
+                this.showMessage(
+                    `🎊 恭喜您完成所有配對！\n總時間：${minutes}:${seconds.toString().padStart(2, '0')}`,
+                    'success'
+                );
+                
+                // 停止計時器
+                if (this.timer) {
+                    clearInterval(this.timer);
+                }
+                
+                // 添加獲勝動畫
+                document.body.classList.add('celebrate');
+                setTimeout(() => {
+                    document.body.classList.remove('celebrate');
+                }, 2000);
+            }
+
+            updateScore() {
+                document.getElementById('score').textContent = this.score;
+            }
+
+            startTimer() {
+                this.timer = setInterval(() => {
+                    const currentTime = Date.now();
+                    const elapsed = Math.floor((currentTime - this.startTime) / 1000);
+                    const minutes = Math.floor(elapsed / 60);
+                    const seconds = elapsed % 60;
+                    
+                    document.getElementById('timer').textContent = 
+                        `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                }, 1000);
+            }
+
+            showMessage(text, type) {
+                const messageElement = document.getElementById('message');
+                messageElement.textContent = text;
+                messageElement.className = `message ${type} show`;
+                
+                setTimeout(() => {
+                    messageElement.classList.remove('show');
+                }, 3000);
+            }
+
+            restart() {
+                this.score = 0;
+                this.matchedPairs.clear();
+                this.startTime = Date.now();
+                
+                // 重置所有樣式
+                document.querySelectorAll('.province-item').forEach(item => {
+                    item.classList.remove('correct', 'incorrect', 'matched');
+                });
+                
+                document.querySelectorAll('.food-item').forEach(item => {
+                    item.classList.remove('correct', 'matched');
+                });
+                
+                this.updateScore();
+                this.setupGame();
+                
+                // 重新開始計時器
+                if (this.timer) {
+                    clearInterval(this.timer);
+                }
+                this.startTimer();
+                
+                this.showMessage('🔄 遊戲已重新開始！', 'success');
+            }
+
+            bindEvents() {
+                document.getElementById('restart-btn').addEventListener('click', () => {
+                    this.restart();
+                });
+            }
+        }
+
+        // 當頁面加載完成後初始化遊戲
+        document.addEventListener('DOMContentLoaded', () => {
+            new FoodMatchingGame();
+        });
+    </script>
+</body>
+</html>
